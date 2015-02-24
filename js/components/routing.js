@@ -116,7 +116,7 @@ Routing.prototype.loadRoute = function(method, route, security, controller, vali
         args.push(controller);
     } else {
         var methods = this.resolveControllerValidation(controller);
-        var wrapperController = new WrapperController(this.errorHandler, methods);
+        var wrapperController = new WrapperController(this.errorHandler, methods, { finalize: this.settings.finalize} );
 
         if (methods.validation) {
             args.push(wrapperController.handleRequestValidation());
@@ -128,9 +128,10 @@ Routing.prototype.loadRoute = function(method, route, security, controller, vali
     return this;
 }
 
-WrapperController = function(errorHandler, methods) {
+WrapperController = function(errorHandler, methods, settings) {
     this.methods = methods;
     this.errorHandler = errorHandler;
+    this.settings = settings;
 
     return this;
 }
@@ -272,6 +273,7 @@ WrapperController.prototype.sendValidationErrors = function(req, res, errors, ne
 WrapperController.prototype.handleRequest = function() {
 
     var self = this;
+
     return function(req, res, next) {
 
         try {
@@ -280,14 +282,20 @@ WrapperController.prototype.handleRequest = function() {
             if (rfUtils.isPromise(handler)) {
 
                 handler.then(function(jsonResult) {
- 
+                    
+                    if(self.settings.finalize){
+                        return self.settings.finalize(req, res, next, jsonResult);
+                    }
+
                     if (typeof jsonResult == "object") {
                         res.status(200).json(jsonResult);
+                        next();
                     } else if (typeof jsonResult == "string") {
                         res.status(200).json(jsonResult);
+                        next();
                     }
                     else if (typeof jsonResult == "function") {
-                        return jsonResult(req, res);
+                        return jsonResult(req, res, next);
                     } else {
                         var e = new Error("INTERNAL_ERROR");
                         e.details = 'your promise must return an function(req, res) or object/string';
@@ -299,15 +307,25 @@ WrapperController.prototype.handleRequest = function() {
                     return self.errorHandler.handleError(e, req, res, next);
                 });
 
-            } else if (typeof handler == "object") {
-                res.status(200).json(handler);
-            } else if (typeof handler == "function") {
-                return handler(req, res);
-            } else if (typeof handler == "string") {
-                return res.json(handler);
             } else {
-                var e = new Error("INTERNAL_ERROR");
-                throw e;
+
+                if(self.settings.finalize){
+                    return self.settings.finalize(req, res, next, handler);
+                }
+
+                if (typeof handler == "object") {
+                    res.status(200).json(handler);
+                    next()
+                } else if (typeof handler == "function") {
+                    handler(req, res, next);
+                    next()
+                } else if (typeof handler == "string") {
+                    res.json(handler);
+                    next()
+                } else {
+                    var e = new Error("INTERNAL_ERROR");
+                    throw e;
+                }
             }
 
         } catch (e) {
