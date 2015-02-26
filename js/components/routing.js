@@ -116,7 +116,7 @@ Routing.prototype.loadRoute = function(method, route, security, controller, vali
         args.push(controller);
     } else {
         var methods = this.resolveControllerValidation(controller);
-        var wrapperController = new WrapperController(this.errorHandler, methods, { finalize: this.settings.finalize} );
+        var wrapperController = new WrapperController(this.errorHandler, methods, { finalize: this.settings.finalize, validateRequest: this.settings.validateRequest} );
 
         if (methods.validation) {
             args.push(wrapperController.handleRequestValidation());
@@ -234,7 +234,6 @@ WrapperController.prototype.handleRequestValidation = function() {
                                     
                                     req.validatedValues = new ValidatedValueHelper();
                                 }
-
                                 req.validatedValues.set(data["applyOn"], data.validatedValue); 
                             }
                         });
@@ -242,27 +241,32 @@ WrapperController.prototype.handleRequestValidation = function() {
                             if (self.methods.validationErrorHandler) {
                                 var handlerResult = self.methods['validationErrorHandler'].apply(self.methods['controller'], [errors, req, res]);
                                 return self.errorHandler.handleError(handlerResult, req, res, next);
-                            } else {
-                                return self.sendValidationErrors(req, res, errors, next);
-                            }
-                        } else {
-                            next();
+                            }                            
+                            return self.sendValidationErrors(req, res, errors, next);
                         }
+                        
+                        return next();
+                        
                     });
         });
     }
 }
 
 WrapperController.prototype.getPromiseValidation = function(data, rules, groups, applyOn) {
-
+    var self = this;
+    var args = arguments;
     return new Promise(function(resolve, reject) {
-        return Validation.ObjectValidator(rules)
-                .validate(data, {groups: groups}).then(function(result) {
+        return new Promise(function(res, rej){
+            if(self.settings.validateRequest) {
+                return self.settings.validateRequest.apply(null, args).then(res).catch(rej);
+            }
+            return Validation.ObjectValidator(rules).validate(data, {groups: groups}).then(res).catch(rej);
+        }).then(function(result) {
             return resolve({validatedValue: result, applyOn: applyOn});
         }).catch(function(error) {
             error.applyOn = applyOn;
             return reject(error);
-        })
+        });
     });
 }
 

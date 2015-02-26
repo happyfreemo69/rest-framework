@@ -27,7 +27,7 @@ handler.prototype.handleError = function(e, req, res, next) {
 
         // Better to use EventEmitter no ?
         if (this.config.debug == true) {
-            console.log(e.stack)
+            console.log(JSON.stringify(e, null, 1), '\n', e.stack)
         }
 
         var errorDisplayed = {error: rfUtils.errorsToString(e)};
@@ -138,7 +138,6 @@ handler.prototype.ValidationParametersError = function(domainsErrors)
     var messages = []
     var errorOnField = [];
     _.each(domainsErrors, function(domain) {
-
         try {
             var flatError = domain.flat();
             _.forIn(flatError, function(value, key) {
