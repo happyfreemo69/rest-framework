@@ -72,12 +72,36 @@ Collection.prototype.generateLinks = function(req, pagination) {
     return Promise.resolve(links);
 }
 
+/*
+Consider following axis
+---------------------->t
+0        |              now
+         T
+
+Suppose T is the current value.
+The navigation is oriented like this:
+
+next<------------>prev
+that is : 
+for next you return : [T-3,T-2,T-1]
+for prev you return : [T+1, T+2, T+3]
+
+for last you return : [2,1,0]
+for first you return: [now, now-1, now-2]
+
+That is you order your array: first elem is the most recent
+last elem is the oldest.
+
+until is the almost the same as previous (except for a get link which removes outer scoped variables :) )
+so first, will do the same as previous?????
+
+ */
 Collection.prototype.generateTimestampLinks = function(req, items, dateExtractor, pagination) {
 
     var components = url.parse(req.protocol + '://' + req.get('host') + req.originalUrl, true);
+
     delete components.search;
     var queryObj = components.query;
-
     var getLink = function(name, value) {
 
         delete queryObj.since;
@@ -132,7 +156,6 @@ Collection.prototype.generateTimestampLinks = function(req, items, dateExtractor
     };
 
     var links = {};
-
     if (hasFirst()) {
 
         var item = _.first(items);
