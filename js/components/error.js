@@ -29,6 +29,7 @@ handler.prototype.handleError = function(e, req, res, next) {
         if (this.config.debug == true) {
             console.log(JSON.stringify(e, null, 1), '\n', e.stack)
         }
+        this.config.onError && this.config.onError(e);
 
         var errorDisplayed = {error: rfUtils.errorsToString(e)};
 
