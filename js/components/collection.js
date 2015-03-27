@@ -251,31 +251,32 @@ Collection.prototype.generateFirebaseLinks = function(req, items, dateExtractor,
     return Promise.resolve(links);
 }
 
-Collection.prototype.returnCollection = function(req, res, dataPromise, countPromise) {
-    var self = this;
-
+/**
+ * ensure data promise is a promise
+ * ensure countPromise is a promier
+ * ensure data promise call returns a promise
+ * @return result of call of countPromise
+ */
+function ensureCorrectPromises(dataPromise, countPromise){
     if (typeof countPromise != "function") {
-        return new Promise(function(resolve, reject) {
-            return reject(new Error("countPromise is not a function"));
-        })
+        return Promise.reject(new Error("countPromise is not a function"));
     }
     var promise = countPromise();
     if (!rfUtils.isPromise(promise)) {
-        return new Promise(function(resolve, reject) {
-            return reject(new Error("result return by countPromise is not a Promise"));
-        })
+        return Promise.reject(new Error("result returned by countPromise is not a Promise"));
     }
-
     if (typeof dataPromise != "function") {
-        return new Promise(function(resolve, reject) {
-            return reject(new Error("dataPromise is not a function"));
-        })
+        return Promise.reject(new Error("dataPromise is not a function"));
     }
+    return promise;
+}
 
-    return countPromise()
-            .then(function(count) {
-                return self.resolvePagination(req, count);
-            }).then(function(pagination) {
+Collection.prototype.returnCollection = function(req, res, dataPromise, countPromise) {
+    var self = this;
+
+    return ensureCorrectPromises(dataPromise, countPromise).then(function(count) {
+        return self.resolvePagination(req, count);
+    }).then(function(pagination) {
         return Promise.props({
             count: pagination.count,
             items: dataPromise(pagination),
@@ -287,28 +288,9 @@ Collection.prototype.returnCollection = function(req, res, dataPromise, countPro
 Collection.prototype.returnCollectionTimestamp = function(req, res, dataPromise, countPromise, dateExtractor) {
     var self = this;
 
-    if (typeof countPromise != "function") {
-        return new Promise(function(resolve, reject) {
-            return reject(new Error("countPromise is not a function"));
-        })
-    }
-    var promise = countPromise();
-    if (!rfUtils.isPromise(promise)) {
-        return new Promise(function(resolve, reject) {
-            return reject(new Error("result return by countPromise is not a Promise"));
-        })
-    }
-
-    if (typeof dataPromise != "function") {
-        return new Promise(function(resolve, reject) {
-            return reject(new Error("dataPromise is not a function"));
-        })
-    }
-
-    return countPromise()
-            .then(function(count) {
-                return self.resolvePagination(req, count);
-            }).then(function(pagination) {
+    return ensureCorrectPromises(dataPromise, countPromise).then(function(count) {
+        return self.resolvePagination(req, count);
+    }).then(function(pagination) {
 
         return dataPromise(pagination).then(function(items) {
             return Promise.props({
@@ -325,28 +307,9 @@ Collection.prototype.returnCollectionTimestamp = function(req, res, dataPromise,
 Collection.prototype.returnCollectionFirebase = function(req, res, dataPromise, countPromise, dateExtractor) {
     var self = this;
 
-    if (typeof countPromise != "function") {
-        return new Promise(function(resolve, reject) {
-            return reject(new Error("countPromise is not a function"));
-        })
-    }
-    var promise = countPromise();
-    if (!rfUtils.isPromise(promise)) {
-        return new Promise(function(resolve, reject) {
-            return reject(new Error("result return by countPromise is not a Promise"));
-        })
-    }
-
-    if (typeof dataPromise != "function") {
-        return new Promise(function(resolve, reject) {
-            return reject(new Error("dataPromise is not a function"));
-        })
-    }
-
-    return countPromise()
-            .then(function(count) {
-                return self.resolvePagination(req, count);
-            }).then(function(pagination) {
+    return ensureCorrectPromises(dataPromise, countPromise).then(function(count) {
+        return self.resolvePagination(req, count);
+    }).then(function(pagination) {
 
         return dataPromise(pagination).then(function(items) {
             return Promise.props({
