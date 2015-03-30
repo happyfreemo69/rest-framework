@@ -22,7 +22,6 @@ handler = function(config) {
 handler.prototype.handleError = function(e, req, res, next) {
 
     var self = this;
-
     if (util.isError(e)) {
 
         // Better to use EventEmitter no ?
@@ -31,10 +30,8 @@ handler.prototype.handleError = function(e, req, res, next) {
         }
         this.config.onError && this.config.onError(e);
 
-        var errorDisplayed = {error: rfUtils.errorsToString(e)};
-
-        if (this.config.debug) {
-            errorDisplayed.stack = e.stack;
+        if(this.config.handleErrorFormatting && this.config.handleErrorFormatting(e) && this.config.mapError(e)){
+            e = this.config.mapError(e);
         }
 
         // Handle default Javascript Error as Internal Error
