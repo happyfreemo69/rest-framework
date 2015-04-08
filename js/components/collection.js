@@ -8,8 +8,7 @@ var Promise = require('bluebird'),
 
 var rfUtils = require('./utils');
 
-Collection = function() {
-}
+Collection = function() {}
 
 Collection.prototype.resolvePagination = function(req, count) {
     return new Promise(function(resolve, reject) {
@@ -131,18 +130,18 @@ Collection.prototype.generateTimestampLinks = function(req, items, dateExtractor
             return false;
         }
 
-        return pagination.before || pagination.since ? true : false;
+        return pagination.before || !!pagination.since;
     }
 
 
     hasLast = function() {
-        return (items.length != 0) ? true : false;
+        return items.length != 0;
     };
 
     hasPrevious = function() {
-        if (items.length == 0)
-            return false;
-        return pagination.before || pagination.since ? true : false;
+        //previous code was wrong. you could not have the link
+        //although you were in the past and there were futur events
+        return true;
     };
 
     hasNext = function() {
@@ -178,11 +177,18 @@ Collection.prototype.generateTimestampLinks = function(req, items, dateExtractor
     }
 
     if (hasPrevious()) {
+        if(items.length){
 
-        var item = _.first(items);
-        var value = item[dateExtractor];
+            var item = _.first(items);
+            var value = item[dateExtractor];
 
-        links['previous'] = getLink('since', value);
+            links['previous'] = getLink('since', value);
+        }else{
+            //fix #601 for chats. for proper stuff open a ticket
+            //just always target the same timestamp
+            //if a new freemo appear, we will jump to the given timestamp
+            links['previous'] = getLink('since', pagination.since || pagination.before);
+        }
     }
 
     if (hasNext()) {
