@@ -187,7 +187,7 @@ Collection.prototype.generateTimestampLinks = function(req, items, dateExtractor
             //fix #601 for chats. for proper stuff open a ticket
             //just always target the same timestamp
             //if a new freemo appear, we will jump to the given timestamp
-            links['previous'] = getLink('since', pagination.since || pagination.before);
+            links['previous'] = getLink('since', pagination.since || pagination.before || Date.now());
         }
     }
 
