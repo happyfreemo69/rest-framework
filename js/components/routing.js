@@ -102,6 +102,9 @@ Routing.prototype.loadRoute = function(method, route, security, controller, vali
         case 'patch':
             m = this.app.patch;
             break;
+        case 'put':
+            m = this.app.put;
+            break;
         default:
             debug = "Method not allowed: " + method;
             this.traceRouteLoaded.push(debug);
