@@ -66,17 +66,31 @@ var Routing = function(app, security, settings, errorHandler) {
     return this;
 }
 
+/**
+ * @param  {string} name  Can be any string as long as it can be required. (dir1/dir2/module.js is ok)
+ * @param  {[type]} config [description]
+ * @return {[type]}        [description]
+ */
 Routing.prototype.loadController = function(name, config) {
 
     var controller = require(this.settings.pathControllers + '/' + name)(this.app, config);
+    if(typeof(controller) == 'undefined'){
+        throw 'expects a controller instance for '+name;
+    }
     this.controllers[(name.toLowerCase())] = controller;
 
     return controller;
 }
 
-
+/**
+ * @param  {string} method ex:GET/PUT/PATCH...
+ * @param  {string} route ex: /v1/buildings/list
+ * @param  {string} security   name of a security rule
+ * @param  {string} controller ex: admin/listBuildings
+ * @param  {sucks} validator 
+ * @return {[type]}            [description]
+ */
 Routing.prototype.loadRoute = function(method, route, security, controller, validator) {
-
     var debug = "[+] " + method + " " + route + (validator ? " (validation)" : "");
     this.traceRouteLoaded.push(debug);
     
@@ -342,37 +356,41 @@ WrapperController.prototype.handleRequest = function() {
     }
 };
 
-Routing.prototype.resolveControllerValidation = function(controllerName) {
-    var parts = controllerName.split('/');
-    if (parts.length != 2) {
-        throw new Error("Error resolving " + controllerName);
+/**
+ * @param  {string} controllerName ex: /v1/buildings/list
+ * @return {[type]}       [description]
+ */
+Routing.prototype.resolveControllerValidation = function(controller) {
+    var parts = controller.split('/');
+    if (parts.length < 2) {
+        throw new Error("Error resolving " + controller);
         return;
     }
 
-    var controller = parts[0].toLowerCase();
-    var action = parts[1];
+    var controllerId = parts.slice(0,-1).join('/').toLowerCase();
+    var action = parts.slice(-1)[0];
     var methodAction = 'get' + changeCase.upperCaseFirst(action) + 'Action';
     var methodValidation = 'get' + changeCase.upperCaseFirst(action) + 'Validation';
     var methodValidationErrorHandler = 'get' + changeCase.upperCaseFirst(action) + 'ValidationErrorHandler';
     var validation = undefined;
     var validationErrorHandler = undefined;
 
-    if (!_.has(this.controllers, controller)) {
-        throw new Error("Controller not found : " + controller);
+    if (!_.has(this.controllers, controllerId)) {
+        throw new Error("Controller not found : " + controllerId);
     }
 
-    if (!_.isFunction(this.controllers[controller][methodAction])) {
-        throw new Error("Method not found : " + methodAction + " on controller " + controller);
+    if (!_.isFunction(this.controllers[controllerId][methodAction])) {
+        throw new Error("Method not found : " + methodAction + " on controller " + controllerId);
     }
 
-    if (_.isFunction(this.controllers[controller][methodValidation])) {
-        validation = this.controllers[controller][methodValidation];
+    if (_.isFunction(this.controllers[controllerId][methodValidation])) {
+        validation = this.controllers[controllerId][methodValidation];
     }
 
 
-    if (_.isFunction(this.controllers[controller][methodValidationErrorHandler])) {
-        validationErrorHandler = this.controllers[controller][methodValidationErrorHandler];
+    if (_.isFunction(this.controllers[controllerId][methodValidationErrorHandler])) {
+        validationErrorHandler = this.controllers[controllerId][methodValidationErrorHandler];
     }
 
-    return {controller: this.controllers[controller], action: this.controllers[controller][methodAction], validation: validation, validationErrorHandler: validationErrorHandler};
+    return {controllerId: this.controllers[controllerId], action: this.controllers[controllerId][methodAction], validation: validation, validationErrorHandler: validationErrorHandler};
 }
