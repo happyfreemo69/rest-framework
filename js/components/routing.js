@@ -387,10 +387,9 @@ Routing.prototype.resolveControllerValidation = function(controller) {
         validation = this.controllers[controllerId][methodValidation];
     }
 
-
     if (_.isFunction(this.controllers[controllerId][methodValidationErrorHandler])) {
         validationErrorHandler = this.controllers[controllerId][methodValidationErrorHandler];
     }
 
-    return {controllerId: this.controllers[controllerId], action: this.controllers[controllerId][methodAction], validation: validation, validationErrorHandler: validationErrorHandler};
+    return {controller: this.controllers[controllerId], action: this.controllers[controllerId][methodAction], validation: validation, validationErrorHandler: validationErrorHandler};
 }
