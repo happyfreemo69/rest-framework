@@ -34,7 +34,7 @@ describe('Collection basic', function() {
 
 describe('Collection Usage', function() {
     var c = new collection();
-
+/*
     describe("#resolvePagination", function() {
 
         it('should failed if called without req.query', function() {
@@ -429,7 +429,6 @@ describe('Collection Usage', function() {
         });
     });
 
-
     describe("#returnCollectionTimestamp", function() {
 
         var req = {
@@ -475,7 +474,7 @@ describe('Collection Usage', function() {
                 }
             }, "Bad structure").then(done, done);
         });
-
+/*
         it('should failed if wrong parameters for data/count promise', function(done) {
             var count = 30;
             var data = [];
@@ -487,8 +486,7 @@ describe('Collection Usage', function() {
             });
         });
     });
-
-
+/*
     describe("#returnCollectionFirebase", function() {
 
         var req = {
@@ -544,7 +542,75 @@ describe('Collection Usage', function() {
                 done();
             });
         });
+    });*/
+
+    describe("returnClosedTimeCollection", function() {
+
+        var req = {
+            protocol: "http",
+            "originalUrl": "",
+            "get": function(e) {
+                return "localhost";
+            },
+            "query": {
+                limit: 2
+            }
+        };
+
+        it('gives correct links for first time', function(done) {
+            var p = function(x){return x.ts;}
+            var items = [];
+            for(var i=0; i<50;++i){
+                items.push({ id: i, name: "item" + i, ts:10+i});
+            };
+            var pagi = {
+                since:null,
+                before:null,
+                limit:2
+            };
+            var res = c.generateTimeClosedLinks(req, items, p, pagi);
+            res.then(function(x){
+                assert(~x.first.indexOf('now'));
+                assert(~x.next.indexOf('now'));
+                assert(~x.last.indexOf('now'));
+                assert(!x.hasOwnProperty('prev'));
+                done();
+            });
+        });
+        
+        it('does not display next nor prev if empty', function(done) {
+            var p = function(x){return x.ts;}
+            var items = [];
+            var pagi = {
+                since:null,
+                before:null,
+                limit:2
+            };
+            var res = c.generateTimeClosedLinks(req, items, p, pagi);
+            res.then(function(x){
+                assert(!x.hasOwnProperty('next'));
+                assert(!x.hasOwnProperty('prev'));
+                done();
+            });
+        });
+
+        it('retrieves now if present in url', function(done){
+            var p = function(x){return x.ts;}
+            var items = [];
+            var pagi = {
+                since:null,
+                before:null,
+                limit:2,
+                now:Date.now()
+            };
+            var res = c.generateTimeClosedLinks(req, items, p, pagi);
+            res.then(function(x){
+                assert(~x.first.indexOf('now'));
+                var ts = x.first.split('now')[1].match(/\d+/);
+                var ts = parseInt(ts, 10);
+                assert.equal(ts, pagi.now);
+                done();
+            });
+        });
     });
-
-
 })

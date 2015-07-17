@@ -41,6 +41,9 @@ Collection.prototype.resolvePagination = function(req, count) {
             before: before,
             until: until
         };
+        if(req.query.now){
+            pagination.now = req.query.now;
+        }
 
         resolve(pagination);
     });
@@ -96,7 +99,6 @@ so first, will do the same as previous?????
 
  */
 Collection.prototype.generateTimestampLinks = function(req, items, dateExtractor, pagination) {
-
     var components = url.parse(req.protocol + '://' + req.get('host') + req.originalUrl, true);
 
     delete components.search;
@@ -201,6 +203,124 @@ Collection.prototype.generateTimestampLinks = function(req, items, dateExtractor
     return Promise.resolve(links);
 }
 
+/*
+Works almost the same as generateTimestmapLink with the following requirement:
+- Always show first
+- Always show last
+- Do not show next if no elements after current page
+- Do not show prev if no elements before current page
+ */
+Collection.prototype.generateTimeClosedLinks = function(req, items, dateExtractor, pagination) {
+    function itemToTs(item){
+        if(typeof(dateExtractor)=='string'){
+            return item[dateExtractor];
+        }
+        return dateExtractor(item);
+    }
+    var components = url.parse(req.protocol + '://' + req.get('host') + req.originalUrl, true);
+/*
+Here is how it works:
+
+# handling the prev link presence
+1- from the first generation of collection trigger action T:
+we know it is the first generation of collection by presence of the __now__ query key
+
+Action T:
+put in every links the now value, now being the timestamp of the first element returned.
+
+2- in case it is not a first generation, trigger action U:
+
+Action U:
+forward now value in every links
+
+To generate a prev link, check if ts of first item is bigger or equal than now.
+iff no, generates prev link
+ */
+    delete components.search;
+    var queryObj = components.query;
+    var defaultNow = Date.now();
+    var firstItemTs = (function(arr){
+        if(arr.length){
+            return itemToTs(arr[0]);
+        }
+        return pagination.now || defaultNow;
+    })(items);
+    var getLink = function(params) {
+        delete queryObj.since;
+        delete queryObj.before;
+        delete queryObj.until;
+        var newQueryObj = _.extend(queryObj, params, {limit: pagination.limit, now:pagination.now||defaultNow});
+        return url.format(_.extend(components, {query: newQueryObj}));
+    }
+
+    var has = {
+        first:function(){return true;},
+        last:function(){return true;},
+        next:function(){
+            if (items.length == 0)
+                return false;
+            if (pagination.since === 0)
+                return false;
+            if (items.length < pagination.limit)
+                return false;
+            return true;
+        },
+        prev:function(){
+            //we shall NEVER have an empty collection
+            //except if it is the first call and there is just no items
+            //in which case, no prev is expected
+            var firstTime = pagination.hasOwnProperty('now');
+            if(firstTime){
+                return false;
+            }
+            if(items.length == 0){
+                return false;
+            }
+            return firstItemTs < pagination.now;
+        }
+    };
+
+    var buildLink = {
+        first:function(){
+            return getLink({'before':firstItemTs});
+        },
+        last:function(){
+            var where = {'since': 0};
+            if (items.length != 0) {
+                where.before = firstItemTs;
+            }
+            return getLink(where);
+        },
+        prev:function(){
+            if(items.length){
+                return  getLink({'since': firstItemTs});
+            }
+            //if we happen to have removed items during pagination of the collection
+            //collection is in a corrupted state.
+            //just try to link to the first page instead.
+            //in case first element of the first page has been removed
+            //happen what it may
+            if(pagination.before && pagination.before < firstItemTs){
+                return getLink({'since': pagination.before});
+            }
+            return getLink({before: firstItemTs});
+        },
+        next:function(){
+            var item = _.last(items);
+            var ts = itemToTs(item);
+            return getLink({'before': ts});
+        }
+    }
+    var links = ['first','prev','next','last'].reduce(function(acc, key){
+        if(has[key]()){
+            acc[key] = buildLink[key]();
+        }
+        return acc;
+    }, {});
+
+    return Promise.resolve(links);
+}
+
 
 Collection.prototype.generateFirebaseLinks = function(req, items, dateExtractor, pagination) {
 
@@ -277,6 +397,9 @@ function ensureCorrectPromises(dataPromise, countPromise){
     return promise;
 }
 
+/**
+ * return a collection paginated by page/limit variables
+ */
 Collection.prototype.returnCollection = function(req, res, dataPromise, countPromise) {
     var self = this;
 
@@ -291,6 +414,31 @@ Collection.prototype.returnCollection = function(req, res, dataPromise, countPro
     });
 }
 
+/**
+ * return a closed collection paginated by timestamp with the first/most recent element fixed in time
+ * @param {string or func} dataExtractor if string, it is assumes to be a property of item being a timestamp
+ * if function, function has the following signature (item)->timestamp
+ */
+Collection.prototype.returnTimeClosedCollection = function(req, res, dataPromise, countPromise, dateExtractor) {
+    var self = this;
+
+    return ensureCorrectPromises(dataPromise, countPromise).then(function(count) {
+        return self.resolvePagination(req, count);
+    }).then(function(pagination) {
+
+        return dataPromise(pagination).then(function(items) {
+            return Promise.props({
+                count: pagination.count,
+                items: items,
+                links: self.generateTimeClosedLinks(req, items, dateExtractor, pagination)
+            })
+        });
+    });
+}
+
+/**
+ * return a semi-opened collection with the first/most recent element not fixed in time
+ */
 Collection.prototype.returnCollectionTimestamp = function(req, res, dataPromise, countPromise, dateExtractor) {
     var self = this;
 
