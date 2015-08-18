@@ -238,18 +238,20 @@ iff no, generates prev link
  */
     delete components.search;
     var queryObj = components.query;
-    var defaultNow = Date.now();
+
     var firstItemTs = (function(arr){
         if(arr.length){
             return itemToTs(arr[0]);
         }
-        return pagination.now || defaultNow;
+        return Date.now();
     })(items);
+
+    var now = pagination.now || firstItemTs+1;//we will do a before from mongo, so keep +1 to keep the first item
     var getLink = function(params) {
         delete queryObj.since;
         delete queryObj.before;
         delete queryObj.until;
-        var newQueryObj = _.extend(queryObj, params, {limit: pagination.limit, now:pagination.now||defaultNow});
+        var newQueryObj = _.extend(queryObj, params, {limit: pagination.limit, now:now});
         return url.format(_.extend(components, {query: newQueryObj}));
     }
 
@@ -269,14 +271,17 @@ iff no, generates prev link
             //we shall NEVER have an empty collection
             //except if it is the first call and there is just no items
             //in which case, no prev is expected
-            var firstTime = pagination.hasOwnProperty('now');
-            if(firstTime){
-                return false;
-            }
             if(items.length == 0){
                 return false;
             }
-            return firstItemTs < pagination.now;
+
+            //if it is the first display don't show prev
+            //the first display is known from the absence of now
+            if(!pagination.now){
+                return false;
+            }
+
+            return firstItemTs + 1 < now;
         }
     };
 
