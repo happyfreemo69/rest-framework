@@ -287,7 +287,7 @@ iff no, generates prev link
 
     var buildLink = {
         first:function(){
-            return getLink({'before':firstItemTs});
+            return getLink({'before':now});
         },
         last:function(){
             var where = {'since': 0};
