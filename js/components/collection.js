@@ -65,7 +65,7 @@ Collection.prototype.generateLinks = function(req, pagination) {
     links.current = getLink(pagination.page);
 
     if (pagination.page > 1) {
-        links.prev = getLink(pagination.page - 1);
+        links.previous = getLink(pagination.page - 1);
     }
     if (pagination.page < pagination.lastPage) {
         links.next = getLink(pagination.page + 1);
@@ -267,7 +267,7 @@ iff no, generates prev link
                 return false;
             return true;
         },
-        prev:function(){
+        previous:function(){
             //we shall NEVER have an empty collection
             //except if it is the first call and there is just no items
             //in which case, no prev is expected
@@ -296,7 +296,7 @@ iff no, generates prev link
             }
             return getLink(where);
         },
-        prev:function(){
+        previous:function(){
             if(items.length){
                 return  getLink({'since': firstItemTs});
             }
@@ -316,7 +316,7 @@ iff no, generates prev link
             return getLink({'before': ts});
         }
     }
-    var links = ['first','prev','next','last'].reduce(function(acc, key){
+    var links = ['first','previous','next','last'].reduce(function(acc, key){
         if(has[key]()){
             acc[key] = buildLink[key]();
         }
