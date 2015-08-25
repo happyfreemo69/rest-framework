@@ -149,7 +149,7 @@ Collection.prototype.generateTimestampLinks = function(req, items, dateExtractor
     hasNext = function() {
         if (items.length == 0)
             return false;
-        if (pagination.since === 0)
+        if (parseInt(pagination.since, 10) === 0)
             return false;
         if (items.length < pagination.limit)
             return false;
