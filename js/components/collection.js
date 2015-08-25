@@ -22,7 +22,7 @@ Collection.prototype.resolvePagination = function(req, count) {
             limit = 10;
         }
 
-        var since = req.query.since != undefined ? req.query.since : null;
+        var since = req.query.since != undefined ? parseInt(req.query.since,10) : null;
         var before = req.query.before != undefined ? req.query.before : null;
         var until = req.query.until != undefined ? req.query.until : null;
 
@@ -149,7 +149,7 @@ Collection.prototype.generateTimestampLinks = function(req, items, dateExtractor
     hasNext = function() {
         if (items.length == 0)
             return false;
-        if (parseInt(pagination.since, 10) === 0)
+        if (pagination.since === 0)
             return false;
         if (items.length < pagination.limit)
             return false;
