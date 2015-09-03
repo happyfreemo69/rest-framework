@@ -22,6 +22,9 @@ handler = function(config) {
 handler.prototype.handleError = function(e, req, res, next) {
 
     var self = this;
+    if(e && e.fwdedError){
+        return res.status(e.statusCode).json(e);
+    }
     if (util.isError(e)) {
 
         // Better to use EventEmitter no ?
