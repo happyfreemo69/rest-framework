@@ -173,7 +173,14 @@ WrapperController.prototype.handleRequestValidation = function() {
                     groups = [groups];
                 }
                 var rules = validation.rules;
-                promises.push(self.getPromiseValidation(req[applyOn] || {}, rules, groups, applyOn));
+                var data = req[applyOn] || {};
+                //as of https://github.com/expressjs/body-parser/issues/109
+                //req.body does not benefit from hasOwnProperty anymore
+                //we ensure that if it was provided by the user as a string we ignore it.
+                if(typeof(data.hasOwnProperty)!='function'){
+                    data.hasOwnProperty = Object.hasOwnProperty.bind(data);
+                }
+                promises.push(self.getPromiseValidation(data, rules, groups, applyOn));
             });
             if (promises.length == 0) {
                 next();
@@ -272,6 +279,7 @@ WrapperController.prototype.handleRequestValidation = function() {
 WrapperController.prototype.getPromiseValidation = function(data, rules, groups, applyOn) {
     var self = this;
     var args = arguments;
+
     return new Promise(function(resolve, reject) {
         return new Promise(function(res, rej){
             if(self.settings.validateRequest) {
