@@ -303,14 +303,13 @@ WrapperController.prototype.handleRequest = function() {
 
     var self = this;
 
-    return async function(req, res, next) {
+    return function(req, res, next) {
 
         try {
             var handler = self.methods['action'].apply(self.methods['controller'], [req, res]);
 
             if (rfUtils.isPromise(handler)) {
-                var jsonResult = await handler;
-                try{
+                return handler.then(function(jsonResult){
                     if(self.settings.finalize){
                         return self.settings.finalize(req, res, next, jsonResult);
                     }
@@ -329,9 +328,9 @@ WrapperController.prototype.handleRequest = function() {
                     var e = new Error("INTERNAL_ERROR");
                     e.details = 'your promise must return an function(req, res) or object/string';
                     throw e;
-                }catch(e){
+                }).catch(function(e){
                     return self.errorHandler.handleError(e, req, res, next);
-                }
+                })
             }
 
             if(self.settings.finalize){

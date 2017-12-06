@@ -1,7 +1,7 @@
 {
   "name": "rest-framework",
   "description": "Rest API Framework",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "licenses": [
     {
       "type": "MIT",
@@ -40,7 +40,7 @@
     "lodash": "^2.4.1",
     "change-case": "^2.1.5",
     "validator-framework": "^0.2.0",
-    "security-framework" : "happyfreemo69/security-framework"
+    "security-framework": "happyfreemo69/security-framework"
   },
   "devDependencies": {
     "mocha": "^1.21.4",
@@ -50,10 +50,10 @@
     "gulp-util": "^3.0.1",
     "gulp-jshint": "^1.8.4",
     "chai-as-promised": "^4.1.1",
-    "supertest":  "~0.14.0",
+    "supertest": "~0.14.0",
     "express": "4.x",
     "body-parser": "*",
-    "promise" : "~6.0.0",
+    "promise": "~6.0.0",
     "node-promise": "~0.5.10",
     "when": "~3.5.0",
     "q": "~1.0.1"
