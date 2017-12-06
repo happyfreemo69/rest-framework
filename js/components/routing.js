@@ -303,59 +303,54 @@ WrapperController.prototype.handleRequest = function() {
 
     var self = this;
 
-    return function(req, res, next) {
+    return async function(req, res, next) {
 
         try {
             var handler = self.methods['action'].apply(self.methods['controller'], [req, res]);
 
             if (rfUtils.isPromise(handler)) {
-
-                handler.then(function(jsonResult) {
-                    
+                var jsonResult = await handler;
+                try{
                     if(self.settings.finalize){
                         return self.settings.finalize(req, res, next, jsonResult);
                     }
 
                     if (typeof jsonResult == "object") {
                         res.status(200).json(jsonResult);
-                        next();
-                    } else if (typeof jsonResult == "string") {
+                        return next();
+                    } 
+                    if (typeof jsonResult == "string") {
                         res.status(200).json(jsonResult);
-                        next();
+                        return next();
                     }
-                    else if (typeof jsonResult == "function") {
+                    if (typeof jsonResult == "function") {
                         return jsonResult(req, res, next);
-                    } else {
-                        var e = new Error("INTERNAL_ERROR");
-                        e.details = 'your promise must return an function(req, res) or object/string';
-                        throw e;
                     }
-
-                }).catch(function(e) {
-                    // promise failed
-                    return self.errorHandler.handleError(e, req, res, next);
-                });
-
-            } else {
-
-                if(self.settings.finalize){
-                    return self.settings.finalize(req, res, next, handler);
-                }
-
-                if (typeof handler == "object") {
-                    res.status(200).json(handler);
-                    next()
-                } else if (typeof handler == "function") {
-                    handler(req, res, next);
-                    next()
-                } else if (typeof handler == "string") {
-                    res.json(handler);
-                    next()
-                } else {
                     var e = new Error("INTERNAL_ERROR");
+                    e.details = 'your promise must return an function(req, res) or object/string';
                     throw e;
+                }catch(e){
+                    return self.errorHandler.handleError(e, req, res, next);
                 }
             }
+
+            if(self.settings.finalize){
+                return self.settings.finalize(req, res, next, handler);
+            }
+            if (typeof handler == "object") {
+                res.status(200).json(handler);
+                return next()
+            }
+            if (typeof handler == "function") {
+                handler(req, res, next);
+                return next()
+            }
+            if (typeof handler == "string") {
+                res.json(handler);
+                return next()
+            }
+            var e = new Error("INTERNAL_ERROR");
+            throw e;
 
         } catch (e) {
             // catch for non promise return
