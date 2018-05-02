@@ -263,7 +263,7 @@ iff no, generates prev link
                 return false;
             if (pagination.since === 0)
                 return false;
-            if (items.length < pagination.limit)
+            if (items.length <= pagination.limit)
                 return false;
             return true;
         },
